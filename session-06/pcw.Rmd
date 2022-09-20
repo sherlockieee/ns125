@@ -1,0 +1,46 @@
+---
+title: "NS125 PCW Session 6"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Hello world, let's explore London's crime!
+
+```{r setup, include=FALSE}
+install.packages("tidyverse")
+install.packages("dplyr")
+library("tidyverse")
+library("dplyr")
+```
+Merging all packages into 1:
+```{r}
+library(dplyr)
+
+#get list of files ending in csv in directory root
+dir(".", pattern='.*[.]csv', recursive = TRUE, full.names = TRUE) %>%
+  # read files into data frames
+  lapply(FUN = read.csv) %>%
+  # bind all data frames into a single data frame
+  bind_rows %>%
+  # write into a single csv file
+  write.csv("all.csv")
+df <- read.csv("all.csv", header=TRUE)
+head(df)
+```
+Cleaning the data
+```{r}
+clean <- mutate(df,Month = as.Date(paste(Month,"-01",sep=""), format="%Y-%m-%d"))
+clean$Crime.type <- as.factor(df$Crime.type)
+clean$LSOA.code <- as.factor(df$LSOA.code)
+clean$LSOA.name <- as.factor(df$LSOA.code)
+head(clean)
+```
+
+```{r}
+pie(table(clean$Crime.type), labels = paste(round(prop.table(table(clean$Crime.type))*100), "%", sep = ""), col = colors(15))
+legend("topright", legend = unique(clean$Crime.type), col = ,
+fill = colors(15), title = "Categories", cex = 0.5)
+
+```
