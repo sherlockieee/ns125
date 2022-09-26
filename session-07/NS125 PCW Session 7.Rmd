@@ -1,0 +1,55 @@
+---
+title: "NS125 PCW Session 7"
+output: pdf_document
+date: "2022-09-26"
+---
+
+```{r setup, include=FALSE}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("readxl")
+install.packages("corrgram")
+install.packages("ellipse")
+```
+
+## Using packages and inspecting data
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(ellipse)
+
+df <- read_excel("data.xlsx", skip = 1, col_names = TRUE, na="NIL")
+head(df)
+```
+
+
+```{r}
+unique(df$Region)
+unique(df$Sub_region)
+```
+
+Factorizing columns
+```{r}
+
+factor_cols <- c("Top_aware", "Top2_aware", "Top3_aware", "Top1_serious", "Top2_serious", "Top3_serious", "Region", "Sub_region")
+df[,factor_cols] <- lapply(df[,factor_cols], factor)
+head(df)
+```
+## Corregram plot
+
+```{r, echo=FALSE}
+chosen_cols <- c("Population.2008", "WPCIAS", "SPCIAS", "APCIAS", "HDI", "CO2emi", "GDPperUS", "WGI", "Aware", "Serious")
+R = cor(df[chosen_cols])
+round(R, 3)
+```
+
+```{r}
+library(corrgram)
+
+corrgram(R, order = NULL, lower.panel = panel.shade, upper.panel = NULL, text.panel = panel.txt, 
+    main = "Predictors of Climate Change Corrgram Plot")
+```
+
