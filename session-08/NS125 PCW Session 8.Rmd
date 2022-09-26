@@ -1,0 +1,113 @@
+---
+title: "NS125 PCW Session 8"
+output: 
+  pdf_document: default
+date: "2022-09-26"
+---
+
+```{r setup, include=FALSE}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("readxl")
+install.packages("corrgram")
+install.packages("ellipse")
+install.packages("data.table")
+```
+
+## Using packages and inspecting data
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(ellipse)
+
+df <- read_excel("./session-07/data.xlsx", skip = 1, col_names = TRUE, na="NIL")
+head(df)
+```
+
+
+```{r}
+unique(df$Region)
+unique(df$Sub_region)
+nrow(df[df$Region == 'Europe (North America)', ])
+nrow(df[df$Region == 'Europe (Oceania)', ])
+```
+
+Factorizing columns
+```{r}
+
+factor_cols <- c("Top_aware", "Top2_aware", "Top3_aware", "Top1_serious", "Top2_serious", "Top3_serious", "Region", "Sub_region")
+df[,factor_cols] <- lapply(df[,factor_cols], factor)
+head(df)
+```
+## Plots
+```{r}
+ggplot(df, aes(x = Region, y = Top_aware)) + 
+  geom_count(aes(color = ..n.., size = ..n..)) + 
+  scale_size_area(max_size = 10) + 
+  guides(color = 'legend') +
+  labs(title="Plot of region and top indicator of awareness, by count", y = "Top awareness indicator", 
+       caption="Top indicator of awareness by regions.\nEducation is the best indicator in all regions except North America.") + theme(plot.caption = element_text(hjust = 0))
+```
+
+```{r}
+ggplot(df, aes(x = Region, y = Top_aware)) +
+  geom_count(aes(size = after_stat(prop),  group = Region)) + 
+  scale_size_area(max_size = 10) + 
+  labs(title="Plot of region and top indicator of awareness, by proportion", y = "Top awareness indicator",
+  caption="Top indicator of awareness by regions, by proportion.\nThis is to account for the fact that North America only has 2 countries and Oceania has only 1.\nEducation is the best indicator in all regions except North America.") + 
+  theme(plot.caption = element_text(hjust = 0))
+```
+
+```{r}
+ggplot(df, aes(x = Region, y = Top1_serious)) +
+  geom_count(aes(color = ..n.., size = ..n..)) + 
+  scale_size_area(max_size = 10) + 
+  guides(color = 'legend') + 
+  labs(title="Plot of region and top indicator of risk perception, by count", 
+       y = "Top risk perception indicator",
+       caption="Top indicator of awareness by regions.\nUnderstanding of global warming cause is the best indicator in all regions.") + 
+  theme(plot.caption = element_text(hjust = 0))
+```
+
+```{r}
+ggplot(df, aes(x = Region, y = Top1_serious)) +
+  geom_count(aes(size = after_stat(prop),  group = Region)) + 
+  scale_size_area(max_size = 10) + 
+  labs(title="Plot of region and top indicator of risk perception, by proportion", y = "Top awareness indicator",
+       caption="Top indicator of awareness by region, by proportion.\nThis is to account for the fact that North America only has 2 countries and Oceania has only 1.\nUnderstanding of global warming cause is the best indicator in all regions.") + 
+  scale_color_brewer(palette="Blues") + 
+  theme(plot.caption = element_text(hjust = 0))
+```
+```{r}
+#Group global south and global north
+Global_north <- c("Europe", "Europe (Oceania)", "Europe (North America)")
+df$global_south_north = ifelse(df$Region %in% Global_north, "North", "South")
+df$global_south_north <- as.factor(df$global_south_north)
+head(df)
+```
+```{r}
+#Get average awareness
+awareness <- df %>%
+  group_by(global_south_north) %>%
+  summarise_at(vars("Aware", "Serious"), mean)
+
+awareness
+```
+```{r}
+library(data.table)
+awareness <- as.data.table(awareness)
+awareness_df <- melt(awareness, id.vars = "global_south_north", variable.name = "category",
+           value.name="percentage")
+head(awareness_df)
+```
+```{r}
+
+ggplot(awareness_df,aes(x = global_south_north, y=percentage, fill=category, color=category)) + 
+    geom_bar(position = "dodge", stat = "identity") + 
+  labs(title="Awareness and risk perception percentage in global South vs North", y = "Percentage", x = "Region",
+       caption="Awareness in global North (89%) is higher than global South (53%).\nHowever, of those who are aware, global South take climate change risks more seriously (83%) than global North (68%).") + 
+  theme(plot.caption = element_text(hjust = 0))
+```
