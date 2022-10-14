@@ -56,6 +56,8 @@ lm
 summary(lm)
 
 ```
+Looking at a binary outcome for target costs vs sender costs, we can see there is a statistical significance only for target costs, where the higher the costs, the more likely the outcome is to succeed, however no such relationship exists for sender cost. Based on this analysis, it only partially support the hypothesis that cost of target > cost of sender. 
+
 
 
 ```{r}
