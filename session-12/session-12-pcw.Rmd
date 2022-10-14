@@ -1,0 +1,69 @@
+---
+title: "NS125 PCW Session 12"
+output: 
+  pdf_document: default
+date: "2022-10-14"
+---
+```{r setup, include=FALSE}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("readxl")
+install.packages("corrgram")
+install.packages("ellipse")
+install.packages("data.table")
+install.packages("caTools")    # For Logistic regression
+install.packages("ROCR")       # For ROC curve to evaluate model
+    
+```
+
+## Installing packages and inspecting the data
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(ellipse)
+
+
+df <- read_excel("./data.xls", col_names = TRUE)
+head(df)
+dim(df)
+```
+
+```{r}
+colnames(df)
+```
+Filtering only state 7, 8 and 9 for finaloutcome, and removing descriptive variables
+```{r}
+chosen_cols <- c("startyear", "endyear", "primarysender", "targetstate", "institution", "targetinstitution", "issue1", "threat", "threatid1", "sanctiontypethreat", "bspecif", "scommit", "anticipatedsendercosts", "anticipatedsendercosts", "sanctiontype", "targetcosts", "sendercosts", "finaloutcome")
+new_df <- df[names(df) %in% chosen_cols]
+new_df <- new_df[new_df$finaloutcome %in% c(7, 8, 9), ]
+head(new_df)
+dim(new_df)
+```
+
+Creating a binary outcome: 
+```{r}
+new_df$outcome <- ifelse(new_df$finaloutcome == 7, 1, 0)
+
+```
+
+```{r}
+library(caTools)
+library(ROCR)
+
+lm <- glm (outcome ~ targetcosts + sendercosts, data=new_df, family="binomial")
+lm
+summary(lm)
+
+```
+
+
+```{r}
+# Predict test data based on model
+predict_reg <- predict(lm, new_df, type = "response")
+predict_reg <- ifelse(predict_reg >0.5, 1, 0)
+   
+# Evaluating model accuracy
+# using confusion matrix
+table(new_df$outcome, predict_reg)
+```
