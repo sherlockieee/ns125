@@ -23,10 +23,9 @@ library(ggplot2)
 library(readxl)
 library(ellipse)
 
-df <- read_excel("./session-07/data.xlsx", skip = 1, col_names = TRUE, na="NIL")
+df <- read_excel("../session-07/data.xlsx", skip = 1, col_names = TRUE, na="NIL")
 head(df)
 ```
-
 
 ```{r}
 unique(df$Region)
@@ -36,13 +35,16 @@ nrow(df[df$Region == 'Europe (Oceania)', ])
 ```
 
 Factorizing columns
+
 ```{r}
 
 factor_cols <- c("Top_aware", "Top2_aware", "Top3_aware", "Top1_serious", "Top2_serious", "Top3_serious", "Region", "Sub_region")
 df[,factor_cols] <- lapply(df[,factor_cols], factor)
 head(df)
 ```
+
 ## Plots
+
 ```{r}
 ggplot(df, aes(x = Region, y = Top_aware)) + 
   geom_count(aes(color = ..n.., size = ..n..)) + 
@@ -81,6 +83,7 @@ ggplot(df, aes(x = Region, y = Top1_serious)) +
   scale_color_brewer(palette="Blues") + 
   theme(plot.caption = element_text(hjust = 0))
 ```
+
 ```{r}
 #Group global south and global north
 Global_north <- c("Europe", "Europe (Oceania)", "Europe (North America)")
@@ -88,6 +91,7 @@ df$global_south_north = ifelse(df$Region %in% Global_north, "North", "South")
 df$global_south_north <- as.factor(df$global_south_north)
 head(df)
 ```
+
 ```{r}
 #Get average awareness
 awareness <- df %>%
@@ -96,6 +100,7 @@ awareness <- df %>%
 
 awareness
 ```
+
 ```{r}
 library(data.table)
 awareness <- as.data.table(awareness)
@@ -103,11 +108,17 @@ awareness_df <- melt(awareness, id.vars = "global_south_north", variable.name = 
            value.name="percentage")
 head(awareness_df)
 ```
+
 ```{r}
 
-ggplot(awareness_df,aes(x = global_south_north, y=percentage, fill=category, color=category)) + 
+ggplot(awareness_df,aes(x = category, y=percentage, fill=global_south_north, color=global_south_north)) + 
     geom_bar(position = "dodge", stat = "identity") + 
   labs(title="Awareness and risk perception percentage in global South vs North", y = "Percentage", x = "Region",
        caption="Awareness in global North (89%) is higher than global South (53%).\nHowever, of those who are aware, global South take climate change risks more seriously (83%) than global North (68%).") + 
   theme(plot.caption = element_text(hjust = 0))
+```
+
+```{r}
+
+
 ```

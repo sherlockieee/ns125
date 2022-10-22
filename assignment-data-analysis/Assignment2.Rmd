@@ -1,0 +1,161 @@
+---
+title: "Perception of climate change in the US"
+output: pdf_document
+date: "2022-10-22"
+---
+
+```{r setup, include=FALSE}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("readxl")
+install.packages("corrgram")
+install.packages("ellipse")
+install.packages('usmap')
+install.packages("stringr")
+
+```
+
+## Using packages and inspecting data
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(ellipse)
+
+df <- read.csv("data.csv")
+head(df)
+dim(df)
+```
+
+```{r}
+unique(df$GeoType)
+```
+We are only interested in National, State and CBSA level (i.e. metro area with at least 10,000 people), thus can filter the other rows.
+```{r}
+interested_geo <- c("State", "National", "CBSA")
+clean_df <- df[df$GeoType %in% interested_geo,]
+clean_df$GeoType <- as.factor(clean_df$GeoType)
+
+dim(clean_df)
+unique(clean_df$GeoType)
+```
+## Corregram plot
+
+```{r, echo=FALSE}
+R = clean_df %>% select(-contains(c('Oppose', 'GEOID', 'GeoType', 'GeoName')))
+
+head(R)
+```
+
+```{r}
+library(corrgram)
+
+corrgram(R, order = NULL, lower.panel = panel.shade, upper.panel = NULL, text.panel = panel.txt, 
+    main = "Predictors of Climate Change Behavior Corrgram Plot")
+```
+
+## State areas
+```{r}
+state <- clean_df[clean_df$GeoType == 'State',]
+names(state)[names(state) == 'GeoName'] <- 'state'
+chosen_vars <- c('GEOID', 'state', 'TotalPop', 'happening', 'human', 'worried')
+state <- state[, chosen_vars]
+head(state)
+```
+
+```{r}
+library(usmap)
+library(ggplot2)
+plot_usmap(data=state, values="happening", color="black") + 
+  scale_fill_continuous(low="lightblue", high="darkblue", name='Belief that climate change is happening', label=scales::comma) +
+  theme(legend.position = "right")
+```
+## Metro areas
+
+```{r}
+metro <- clean_df[clean_df$GeoType == 'CBSA',] %>% select(-contains(c('Oppose')))
+head(metro)
+```
+
+```{r}
+library(stringr)
+metro[c('City', 'State')] <- str_split_fixed(metro$GeoName, ', ', 2)
+chosen_vars <- c('GEOID', 'GeoName', 'TotalPop', 'happening', 'human', 'worried', 'City', 'State')
+metro <- metro[, chosen_vars]
+head(metro)
+
+```
+
+
+## Getting voting patterns data
+```{r}
+data <- read.table('president.tab', header = T, sep = "\t")
+cols <- c("year", "state", "state_po", "candidate", "candidatevotes",  "totalvotes", "party_simplified")
+data <- data[data$year == 2020, names(data) %in% cols]
+data$party_simplified[data$party_simplified == "LIBERTARIAN"] <- "OTHER"
+head(data)
+
+```
+
+```{r}
+president <- data %>%
+  group_by(state, state_po, party_simplified, totalvotes) %>%
+  summarise(across(c(candidatevotes), sum))
+president$percentage = president$candidatevotes / president$totalvotes
+president
+
+```
+```{r}
+democrats <- president[president$party_simplified == 'DEMOCRAT', ]
+head(democrats)
+```
+```{r}
+plot_usmap(data=democrats, values="percentage", color="black") + 
+  scale_fill_continuous(low="blue", high="black", name='Percentage supporting Democratic Party', label=scales::comma) +
+  theme(legend.position = "right")
+```
+```{r}
+democrats <- president[president$party_simplified == 'OTHER', ]
+plot_usmap(data=democrats, values="percentage", color="black") + 
+  scale_fill_continuous(low="green", high="black", name='Percentage supporting Independent Parties', label=scales::comma) +
+  theme(legend.position = "right")
+```
+
+## Merging metro table with state table (for state average) and democrat table (for democrat average)
+
+```{r}
+merged <- merge(x=metro,y=democrats,by.x="State", by.y="state_po",all.x=TRUE)
+names(merged)[names(merged) == 'State'] <- 'state_id'
+head(merged)
+```
+```{r}
+state$state <- toupper(state$state)
+head(state)
+```
+```{r}
+final <- merge(x=merged, y=state, by="state", all.x=TRUE, suffix = c("_metro", "_state"))
+final$GEOID_metro <- as.factor(final$GEOID_metro)
+final$GEOID_state <- as.factor(final$GEOID_state)
+head(final)
+```
+```{r}
+library(dplyr)
+library(corrgram)
+chosen <- final %>% 
+    select_if(is.numeric)
+corrgram(chosen, order = NULL, lower.panel = panel.shade, upper.panel = panel.pts, text.panel = panel.txt, 
+    main = "Predictors of Climate Change Behavior Corrgram Plot")
+```
+
+```{r}
+chosen_standardized <- chosen %>% mutate_at(c('TotalPop_metro', 'percentage', 'happening_state', 'happening_metro'), ~(scale(.) %>% as.vector))
+lm <- lm(happening_metro ~ TotalPop_metro + percentage + happening_state, data=chosen_standardized)
+summary(lm)
+```
+```{r}
+lm <- lm(happening_metro ~ TotalPop_metro + percentage + happening_state, data=final)
+summary(lm)
+```
+
