@@ -113,7 +113,7 @@ head(democrats)
 ```
 ```{r}
 plot_usmap(data=democrats, values="percentage", color="black") + 
-  scale_fill_continuous(low="blue", high="black", name='Percentage supporting Democratic Party', label=scales::comma) +
+  scale_fill_continuous(low="lightblue", high="darkblue", name='Percentage supporting Democratic Party', label=scales::comma) +
   theme(legend.position = "right")
 ```
 ```{r}
@@ -141,6 +141,16 @@ final$GEOID_state <- as.factor(final$GEOID_state)
 head(final)
 ```
 ```{r}
+ggplot(final, aes(x=TotalPop_metro, y=happening_metro)) + geom_point() + 
+  labs(x = "Total population in metro area", y = "Percentage believing that climate is happening")
+```
+
+```{r}
+ggplot(final, aes(x=TotalPop_metro, y=happening_metro)) + geom_point() + scale_x_continuous(trans='log10') + 
+  labs(x = "Total population in metro area (log scale)", y = "Percentage believing that climate is happening")
+```
+
+```{r}
 library(dplyr)
 library(corrgram)
 chosen <- final %>% 
@@ -150,12 +160,12 @@ corrgram(chosen, order = NULL, lower.panel = panel.shade, upper.panel = panel.pt
 ```
 
 ```{r}
-chosen_standardized <- chosen %>% mutate_at(c('TotalPop_metro', 'percentage', 'happening_state', 'happening_metro'), ~(scale(.) %>% as.vector))
-lm <- lm(happening_metro ~ TotalPop_metro + percentage + happening_state, data=chosen_standardized)
-summary(lm)
+#create log column for population
+chosen$population_log <- log(chosen$TotalPop_metro)
+
 ```
 ```{r}
-lm <- lm(happening_metro ~ TotalPop_metro + percentage + happening_state, data=final)
+lm <- lm(happening_metro ~ population_log + percentage, data=chosen)
 summary(lm)
 ```
 
